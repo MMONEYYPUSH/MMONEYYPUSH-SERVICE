@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MMONEYY PUSH</title>
+
+<!-- Telegram Web App SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Шрифты -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#080706;
+    --graphite:#14110c;
+    --brown:#1a140b;
+    --gold-1:#e9d29a;
+    --gold-2:#c6a04a;
+    --gold-3:#8a6a2b;
+    --cream:#ece5d7;
+    --muted:#948b78;
+    --hair:rgba(201,164,74,.26);
+    --hair-soft:rgba(201,164,74,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:'Manrope',sans-serif;color:var(--cream);
+    background:var(--ink);
+    min-height:100vh;position:relative;overflow-x:hidden;
+    padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 46px);
+  }
+  /* Глубокий мраморный фон + прожилки + виньетка */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1000px 520px at 50% -8%, rgba(201,164,74,.12), transparent 60%),
+      radial-gradient(760px 560px at 110% 108%, rgba(138,106,43,.10), transparent 62%),
+      radial-gradient(700px 700px at -10% 40%, rgba(201,164,74,.05), transparent 60%),
+      linear-gradient(180deg,#0c0a07 0%,#080605 55%,#050403 100%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background:
+      linear-gradient(115deg,transparent 0 38%,rgba(201,164,74,.06) 39%,transparent 40%),
+      linear-gradient(72deg,transparent 0 61%,rgba(201,164,74,.05) 62%,transparent 63%),
+      radial-gradient(120% 100% at 50% 50%,transparent 62%,rgba(0,0,0,.55) 100%);
+  }
+
+  /* Слой с купюрами */
+  #bills{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+  .bill{position:absolute;top:-16%;will-change:transform;animation:billfall linear infinite}
+  .bill svg{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 12px rgba(0,0,0,.45))}
+  @keyframes billfall{
+    0%{transform:translate3d(0,-16vh,0) rotate(var(--r0))}
+    100%{transform:translate3d(var(--dx),118vh,0) rotate(var(--r1))}
+  }
+
+  .stage{position:relative;z-index:2}
+
+  /* Баннер */
+  .banner-box{position:relative}
+  .banner{display:block;width:100%;height:auto}
+  .banner-box::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold-2),transparent)}
+  .banner-fallback{width:100%;aspect-ratio:2/1;display:flex;align-items:center;justify-content:center;
+    font-family:'Cinzel',serif;font-weight:700;letter-spacing:3px;font-size:20px;color:var(--gold-1);
+    background:linear-gradient(135deg,#171205,#0a0805)}
+
+  .wrap{max-width:520px;margin:0 auto;padding:0 18px}
+
+  /* Header под баннером — кнопка TELEGRAM */
+  .head{text-align:center;padding:24px 0 4px}
+  .tg-btn{
+    display:inline-flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none;
+    font-family:'Cinzel',serif;font-weight:700;font-size:16px;letter-spacing:4px;color:#231803;
+    padding:13px 32px;border-radius:13px;border:none;
+    background:linear-gradient(180deg,#f4e2a8 0%,#d0aa4f 52%,#a97f2e 100%);
+    box-shadow:0 6px 18px rgba(201,164,74,.30), inset 0 1px 0 rgba(255,248,220,.7), inset 0 -1px 0 rgba(120,86,20,.5);
+    animation:tgpulse 2.8s ease-in-out infinite}
+  .tg-btn svg{width:18px;height:18px;display:block}
+  .tg-btn:active{transform:translateY(1px)}
+  @keyframes tgpulse{
+    0%,100%{box-shadow:0 6px 18px rgba(201,164,74,.26), inset 0 1px 0 rgba(255,248,220,.6)}
+    50%{box-shadow:0 6px 22px rgba(201,164,74,.5), 0 0 20px rgba(201,164,74,.32), inset 0 1px 0 rgba(255,248,220,.78)}}
+
+  /* Орнамент */
+  .rule{display:flex;align-items:center;justify-content:center;gap:12px;margin:22px 0 6px}
+  .rule i{height:1px;width:60px;background:linear-gradient(90deg,transparent,var(--gold-2))}
+  .rule i:last-child{background:linear-gradient(90deg,var(--gold-2),transparent)}
+  .rule b{width:6px;height:6px;transform:rotate(45deg);
+    background:linear-gradient(135deg,var(--gold-1),var(--gold-3))}
+
+  /* Карточки */
+  .cards{display:grid;grid-template-columns:1fr;gap:14px;margin-top:20px}
+  .card{
+    position:relative;border-radius:16px;padding:18px 18px 16px 22px;overflow:hidden;
+    background:linear-gradient(158deg,rgba(32,27,17,.92),rgba(14,12,8,.94));
+    border:1px solid var(--hair);
+    box-shadow:0 14px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(233,210,154,.06), inset 0 0 34px rgba(0,0,0,.35);
+    transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  .card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;
+    background:linear-gradient(180deg,var(--gold-1),var(--gold-3))}
+  .card::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(233,210,154,.25),transparent)}
+  .card:hover{transform:translateY(-3px);border-color:rgba(201,164,74,.5);
+    box-shadow:0 20px 40px rgba(0,0,0,.55),0 0 22px rgba(201,164,74,.14),inset 0 1px 0 rgba(233,210,154,.08)}
+  .c-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .c-idx{font-family:'Cinzel',serif;font-weight:600;font-size:15px;letter-spacing:1px;
+    color:var(--gold-2)}
+  .c-tag{font-size:9px;font-weight:700;letter-spacing:3px;color:rgba(148,139,120,.85);text-transform:uppercase}
+  .c-name{font-family:'Cinzel',serif;font-weight:600;font-size:17px;letter-spacing:.6px;color:var(--cream);line-height:1.25}
+  .c-desc{font-size:13.5px;line-height:1.55;color:var(--muted);margin-top:8px}
+  .c-div{height:1px;background:var(--hair-soft);margin:15px 0 13px}
+  .c-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .c-price{font-family:'Cinzel',serif;font-weight:600;font-size:16px;white-space:nowrap;
+    background:linear-gradient(180deg,var(--gold-1),var(--gold-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .btn{
+    position:relative;overflow:hidden;flex-shrink:0;
+    font-family:'Manrope',sans-serif;font-weight:700;font-size:13px;letter-spacing:.4px;
+    color:#241905;cursor:pointer;padding:10px 20px;border:none;border-radius:11px;
+    background:linear-gradient(180deg,#f2dfa4 0%,#d0aa4f 52%,#a97f2e 100%);
+    box-shadow:0 5px 16px rgba(201,164,74,.32), inset 0 1px 0 rgba(255,248,220,.7), inset 0 -1px 0 rgba(120,86,20,.5);
+    transition:transform .12s ease, box-shadow .2s ease}
+  .btn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,250,230,.6),transparent);
+    transform:skewX(-18deg);transition:left .5s ease}
+  .card:hover .btn::after{left:130%}
+  .btn:active{transform:translateY(1px);
+    box-shadow:0 3px 10px rgba(201,164,74,.3), inset 0 1px 0 rgba(255,248,220,.5)}
+
+  .footer{text-align:center;color:var(--muted);font-size:10px;letter-spacing:2px;margin-top:32px;text-transform:uppercase}
+
+  /* Reveal */
+  .head,.rule,.cards{animation:rise .7s ease both}
+  .rule{animation-delay:.05s}.cards{animation-delay:.15s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  @media (min-width:640px){
+    .wrap{max-width:820px;padding:0 24px}
+    .cards{grid-template-columns:1fr 1fr;gap:16px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .head,.rule,.cards{animation:none}
+    .bill{display:none}.tg-btn{animation:none}
+  }
+</style>
+</head>
+<body>
+
+  <div id="bills"></div>
+
+  <div class="stage">
+    <div class="banner-box">
+      <img class="banner" id="banner" src="banner.jpg" alt="MMONEYY PUSH">
+    </div>
+
+    <div class="wrap">
+      <div class="head">
+        <a class="tg-btn" id="brandLink">
+          <svg viewBox="0 0 24 24" fill="#231803" xmlns="http://www.w3.org/2000/svg"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.7 13.4l-4.7-1.5c-1-.3-1-1 .2-1.5L20.6 3c.8-.3 1.6.2 1.3 1.3Z"/></svg>
+          <span>TELEGRAM</span>
+        </a>
+      </div>
+
+      <div class="rule"><i></i><b></b><i></i></div>
+
+      <main class="cards" id="cards"></main>
+      <div class="footer" id="footer"></div>
+    </div>
+  </div>
+
+<script>
+/* ================================================================
+   РЕДАКТИРУЙ ТОЛЬКО ЭТОТ БЛОК
+   ================================================================ */
+const CONFIG = {
+  TG_LINK:   "https://t.me/mmoneyypush",          // ← твой Telegram (замени USERNAME)
+  BRAND:     "MMONEYY PUSH",
+  BRAND_SUB: "PRIVATE FINANCIAL SERVICE",
+  STATUS:    "ONLINE",
+  BILL_IMG:  "",                               // ← путь к PNG своей карты/картинки (необязательно). Пусто = встроенная золотая карта
+
+  CARDS: [
+    { name: "USDT/USDC FLASH", desc: "MetaMask, Binance(Web3), Trust Wallet, SafePal. (TON/SOLANA/TRC20) Между кошельками переводится — отображает общий баланс и виден в блокчейн-сканерах.",   price: "10%" },
+    { name: "ЮР/ФИЗ СЧЕТА", desc: "Лимиты: 5к-250к, страны - Чехия, Германия, Швейцария, Португалия, Италия, Польша, UK, USA - другие по запросу, обмен в  USDT до 24 часов, под разный материал", price: "10%-70%" },
+    { name: "КУРЬЕРЫ", desc: "Больше города по всему Евросоюзу и Англия.  От 10к€",         price: "15%-35%" },
+    { name: "НЕОБАНКИ, БИРЖИ, ПЛАТЕЖНЫЕ СИСТЕМЫ", desc: "Binance, Bybit, OKX, Mexc, PayPal, Revolut, Wise, Paysera, ZEN и другие. Так же дропы под верификацию. Граждани -СНГ/Европа",            price: "50$-1500$" },
+    { name: "СОФТЫ/ПРОГРАММЫ", desc: "Авторские web приложения, программы, софты, инструменты",            price: "1000$+" },
+
+  ]
+};
+/* ================================================================
+   ⛔  НИЖЕ НИЧЕГО МЕНЯТЬ НЕ НУЖНО
+   ================================================================ */
+
+function openTG(){
+  var t = window.Telegram && window.Telegram.WebApp;
+  if (t && t.openTelegramLink && CONFIG.TG_LINK.indexOf("t.me") !== -1) t.openTelegramLink(CONFIG.TG_LINK);
+  else window.open(CONFIG.TG_LINK, "_blank");
+}
+
+var tg = window.Telegram && window.Telegram.WebApp;
+if (tg){ tg.ready(); tg.expand();
+  try{ tg.setHeaderColor("#080706"); tg.setBackgroundColor("#080706"); }catch(e){} }
+
+/* Header */
+document.getElementById("footer").textContent = CONFIG.BRAND + " · 2026";
+document.getElementById("brandLink").onclick  = openTG;
+
+/* Баннер fallback */
+var banner = document.getElementById("banner");
+banner.onerror = function(){
+  var d = document.createElement("div");
+  d.className = "banner-fallback";
+  d.textContent = "БАННЕР 1200×600";
+  banner.replaceWith(d);
+};
+
+/* Карточки */
+var tag = (CONFIG.BRAND.split(" ")[0] || "MMONEYY").toUpperCase();
+var root = document.getElementById("cards");
+CONFIG.CARDS.forEach(function(item, i){
+  var c = document.createElement("div");
+  c.className = "card";
+  c.innerHTML =
+    '<div class="c-top"><span class="c-idx"></span><span class="c-tag"></span></div>' +
+    '<div class="c-name"></div>' +
+    '<div class="c-desc"></div>' +
+    '<div class="c-div"></div>' +
+    '<div class="c-foot"><span class="c-price"></span>' +
+    '<button class="btn">Связаться</button></div>';
+  c.querySelector(".c-idx").textContent   = (i+1<10?"0":"") + (i+1);
+  c.querySelector(".c-tag").textContent   = tag;
+  c.querySelector(".c-name").textContent  = item.name;
+  c.querySelector(".c-desc").textContent  = item.desc;
+  c.querySelector(".c-price").textContent = item.price;
+  c.querySelector(".btn").onclick = openTG;
+  root.appendChild(c);
+});
+
+/* Встроенная векторная премиальная банковская карта (чёрное золото) */
+var CARD_SVG =
+  '<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg">' +
+  '<defs>' +
+  '<linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">' +
+  '<stop offset="0" stop-color="#2a251b"/><stop offset="0.5" stop-color="#15120c"/><stop offset="1" stop-color="#090705"/></linearGradient>' +
+  '<linearGradient id="au" x1="0" y1="0" x2="1" y2="1">' +
+  '<stop offset="0" stop-color="#f4e2a8"/><stop offset="0.5" stop-color="#c6a04a"/><stop offset="1" stop-color="#8a6a2b"/></linearGradient>' +
+  '</defs>' +
+  '<rect x="1" y="1" width="158" height="98" rx="12" fill="url(#cg)" stroke="url(#au)" stroke-width="1.2" stroke-opacity="0.75"/>' +
+  '<rect x="16" y="33" width="26" height="21" rx="4" fill="url(#au)"/>' +
+  '<line x1="16" y1="43.5" x2="42" y2="43.5" stroke="#7a5e25" stroke-width="1"/>' +
+  '<line x1="29" y1="33" x2="29" y2="54" stroke="#7a5e25" stroke-width="1"/>' +
+  '<path d="M50 36 a11 11 0 0 1 0 18" fill="none" stroke="url(#au)" stroke-width="1.6"/>' +
+  '<path d="M54 32 a16 16 0 0 1 0 26" fill="none" stroke="url(#au)" stroke-width="1.6" opacity="0.6"/>' +
+  '<g fill="#cbb079">' +
+  '<circle cx="18" cy="70" r="2"/><circle cx="24" cy="70" r="2"/><circle cx="30" cy="70" r="2"/><circle cx="36" cy="70" r="2"/>' +
+  '<circle cx="49" cy="70" r="2"/><circle cx="55" cy="70" r="2"/><circle cx="61" cy="70" r="2"/><circle cx="67" cy="70" r="2"/>' +
+  '<circle cx="80" cy="70" r="2"/><circle cx="86" cy="70" r="2"/><circle cx="92" cy="70" r="2"/><circle cx="98" cy="70" r="2"/>' +
+  '<circle cx="111" cy="70" r="2"/><circle cx="117" cy="70" r="2"/><circle cx="123" cy="70" r="2"/><circle cx="129" cy="70" r="2"/>' +
+  '</g>' +
+  '<text x="142" y="27" font-family="Georgia,serif" font-size="14" font-weight="bold" fill="url(#au)" text-anchor="end">MP</text>' +
+  '<rect x="16" y="83" width="54" height="4" rx="2" fill="#7a6636" opacity="0.7"/></svg>';
+
+/* Падающие банковские карты */
+(function(){
+  var layer = document.getElementById("bills");
+  var mobile = window.innerWidth < 600;
+  var count = mobile ? (8 + Math.floor(Math.random()*5)) : (15 + Math.floor(Math.random()*6));
+  var rnd = function(a,b){ return a + Math.random()*(b-a); };
+
+  for (var i=0; i<count; i++){
+    var depth = Math.random();                       /* 0 = далеко, 1 = близко */
+    var b = document.createElement("div");
+    b.className = "bill";
+    var w = mobile ? rnd(40, 96) : rnd(46, 122);
+    w = w * (0.6 + depth*0.7);
+    b.style.width = w.toFixed(0) + "px";
+    b.style.left = rnd(-4, 100) + "vw";
+    b.style.opacity = (0.10 + depth*0.28).toFixed(2);
+    b.style.filter = depth < 0.4 ? "blur(1.4px)" : (depth < 0.7 ? "blur(.6px)" : "none");
+    b.style.zIndex = Math.round(depth*10);
+    b.style.setProperty("--dx", rnd(-6, 6).toFixed(1) + "vw");
+    b.style.setProperty("--r0", rnd(-30, 30).toFixed(0) + "deg");
+    b.style.setProperty("--r1", rnd(160, 260).toFixed(0) + "deg");
+    b.style.animationDuration = rnd(16, 28).toFixed(1) + "s";
+    b.style.animationDelay = (-rnd(0, 22)).toFixed(1) + "s";
+    b.innerHTML = CONFIG.BILL_IMG
+      ? '<img src="'+CONFIG.BILL_IMG+'" style="display:block;width:100%;height:auto" alt="">'
+      : CARD_SVG;
+    layer.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>
